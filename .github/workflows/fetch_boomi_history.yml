@@ -1,0 +1,89 @@
+name: Get Boomi Component History
+
+on:
+  workflow_dispatch:
+    inputs:
+      component_id:
+        description: 'Boomi Component ID'
+        required: true
+
+jobs:
+  fetch-history:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install Python dependencies
+        run: pip install pandas requests
+
+      - name: Fetch Boomi Component History and Process
+        env:
+          BOOMI_USERNAME: ${{ secrets.BOOMI_USERNAME }}
+          BOOMI_TOKEN: ${{ secrets.BOOMI_TOKEN }}
+          COMPONENT_ID: ${{ github.event.inputs.component_id }}
+        run: |
+          python3 <<EOF
+          import requests
+          import pandas as pd
+
+          component_id = "${COMPONENT_ID}"
+          auth = f"BOOMI_TOKEN.{os.environ['BOOMI_USERNAME']}:{os.environ['BOOMI_TOKEN']}"
+          url = f"https://api.boomi.com/api/rest/v1/flexport-HIQ5VP/Component/{component_id}/query"
+
+          headers = {
+              "Accept": "application/json",
+              "Content-Type": "application/json"
+          }
+
+          data = {
+              "QueryFilter": {
+                  "expression": {
+                      "property": "componentId",
+                      "operator": "EQUALS",
+                      "argument": [component_id]
+                  }
+              }
+          }
+
+          response = requests.post(url, auth=tuple(auth.split(":", 1)), json=data, headers=headers)
+          response.raise_for_status()
+          metadata = response.json().get("result", [])
+
+          if not metadata:
+              print("No component metadata found.")
+              exit(0)
+
+          df = pd.DataFrame(metadata)[['componentId', 'version', 'modifiedBy']]
+          df = df.sort_values('version', ascending=False)
+          df.to_csv("boomi-history.csv", index=False)
+
+          # Get highest version
+          highest = df.iloc[0]
+          highest_user = highest['modifiedBy']
+
+          # Find lowest version not by same user
+          others = df[df['modifiedBy'] != highest_user]
+
+          if not others.empty:
+              lowest_other = others.iloc[-1]
+              print("Highest version:", highest['version'], "by", highest_user)
+              print("Lowest version (diff user):", lowest_other['version'], "by", lowest_other['modifiedBy'])
+          else:
+              print("Only one user has modified this component:", highest_user)
+
+          EOF
+
+      - name: Commit results
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git add boomi-history.csv
+          git commit -m "Add Boomi component version history for ${{ github.event.inputs.component_id }}" || echo "No changes to commit"
+          git push https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git HEAD:main

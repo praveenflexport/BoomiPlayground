@@ -1,0 +1,35 @@
+name: Boomi Code Review AI
+
+on:
+  workflow_dispatch:
+    inputs:
+      jira_id:
+        description: 'Jira ID to analyze'
+        required: true
+        type: string
+
+jobs:
+  review-boomi-component:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+
+    - name: Install dependencies
+      run: |
+        pip install -r requirements.txt
+
+    - name: Run Boomi AI Review Script
+      env:
+        JIRA_ID: ${{ github.event.inputs.jira_id }}
+        OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        BOOMI_CLIENT_ID: ${{ secrets.BOOMI_CLIENT_ID }}
+        BOOMI_CLIENT_SECRET: ${{ secrets.BOOMI_CLIENT_SECRET }}
+      run: |
+        python boomi_ai_review.py $JIRA_ID

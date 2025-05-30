@@ -1,4 +1,4 @@
-name: Boomi Diff Review Batch
+name: Step 2 - Boomi Diff Review Batch
 
 on:
   workflow_dispatch:

@@ -1,4 +1,4 @@
-name: Analyze Jira and Summarize Testing
+name: Step 1 Analyze Jira and Summarize Testing
 
 on:
   workflow_dispatch:

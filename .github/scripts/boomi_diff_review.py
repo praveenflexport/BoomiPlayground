@@ -58,7 +58,7 @@ def review_diff_with_openai(prompt):
 
 
 with open("readyForCodeReview.csv", newline="") as csvfile:
-    reader = csv.DictReader(csvfile, delimiter='\t')
+    reader = csv.DictReader(csvfile)
     for row in reader:
         component_id = row["componentid"]
         source_version = int(row["before"])

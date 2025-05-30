@@ -1,0 +1,63 @@
+name: Boomi Version Author Comparison
+
+on:
+  workflow_dispatch:
+
+jobs:
+  compare-versions:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install dependencies
+        run: pip install pandas
+
+      - name: Run comparison logic
+        run: |
+          python3 <<EOF
+          import pandas as pd
+
+          # Load CSV
+          df = pd.read_csv('boomi-history.csv')
+
+          # Sort by version descending
+          df_sorted = df.sort_values(by='version', ascending=False).reset_index(drop=True)
+
+          # Get latest version details
+          latest_row = df_sorted.iloc[0]
+          latest_version = latest_row['version']
+          latest_author = latest_row['modifiedBy']
+          component_id = latest_row['componentId']
+
+          # Find earliest version NOT by same author
+          other_versions = df_sorted[df_sorted['modifiedBy'] != latest_author].sort_values(by='version')
+          if not other_versions.empty:
+              earliest_version = other_versions.iloc[0]['version']
+          else:
+              earliest_version = None
+
+          # Save results
+          output = pd.DataFrame([{
+              'componentId': component_id,
+              'latestVersion': latest_version,
+              'earliestOtherVersion': earliest_version
+          }])
+
+          output.to_csv('boomi-version-comparison.csv', index=False)
+          print(output)
+          EOF
+
+      - name: Commit result
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git add boomi-version-comparison.csv
+          git commit -m "Add Boomi version comparison results" || echo "No changes to commit"
+          git push https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git HEAD:main

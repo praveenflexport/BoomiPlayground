@@ -24,37 +24,34 @@ jobs:
           python3 <<EOF
           import pandas as pd
 
-          # Load CSV
+          # Load data
           df = pd.read_csv('boomi-history.csv')
 
           # Sort by version descending
           df_sorted = df.sort_values(by='version', ascending=False).reset_index(drop=True)
 
-          # Get latest version details
-          latest_row = df_sorted.iloc[0]
-          latest_version = latest_row['version']
-          latest_author = latest_row['modifiedBy']
-          component_id = latest_row['componentId']
+          # Get latest version and author
+          latest_version_row = df_sorted.iloc[0]
+          latest_version = latest_version_row['version']
+          latest_author = latest_version_row['modifiedBy']
+          component_id = latest_version_row['componentId']
 
-          # Find earliest version NOT by same author
-          other_versions = df_sorted[df_sorted['modifiedBy'] != latest_author].sort_values(by='version')
+          # Find earliest (i.e. highest) version NOT by same author
+          other_versions = df_sorted[df_sorted['modifiedBy'] != latest_author]
           if not other_versions.empty:
-              earliest_version = other_versions.iloc[0]['version']
+              earliest_other_version = other_versions.iloc[0]['version']
           else:
-              earliest_version = None
+              earliest_other_version = None
 
-          # Save results
-          output = pd.DataFrame([{
+          # Write output
+          pd.DataFrame([{
               'componentId': component_id,
               'latestVersion': latest_version,
-              'earliestOtherVersion': earliest_version
-          }])
-
-          output.to_csv('boomi-version-comparison.csv', index=False)
-          print(output)
+              'earliestOtherVersion': earliest_other_version
+          }]).to_csv('boomi-version-comparison.csv', index=False)
           EOF
 
-      - name: Commit result
+      - name: Commit results
         run: |
           git config user.name "github-actions"
           git config user.email "github-actions@github.com"

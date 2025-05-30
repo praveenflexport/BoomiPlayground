@@ -35,8 +35,19 @@ jobs:
           import os
           import requests
           import base64
-          import re
           from openai import OpenAI
+
+          def flatten_comments(comments):
+              flat = []
+              for c in comments:
+                  try:
+                      blocks = c['body']['content']
+                      for block in blocks:
+                          for piece in block.get('content', []):
+                              flat.append(piece.get('text', ''))
+                  except Exception:
+                      continue
+              return flat
 
           jira_id = os.environ['JIRA_ID']
           base_url = os.environ['JIRA_BASE_URL']
@@ -53,23 +64,35 @@ jobs:
           res.raise_for_status()
           issue_data = res.json()
 
+          summary = issue_data['fields'].get('summary', '')
+          description = issue_data['fields'].get('description', {}).get('content', [])
+          desc_text = " ".join([p['content'][0].get('text', '') for p in description if p.get('content')])
+          components = issue_data['fields'].get('components', [])
+          component_names = [c.get('id', 'unknown') for c in components]
+
           comments = issue_data["fields"].get("comment", {}).get("comments", [])
-          comment_bodies = [c["body"] for c in comments]
-
-          components = issue_data["fields"].get("components", [])
-          component_ids = [c.get("id", "unknown") for c in components]
-
-          version_pattern = r"(?i)(?:before|previous) version[:=]? (\S+)|(?:after|current) version[:=]? (\S+)"
-          before_version = after_version = None
-          for comment in comment_bodies:
-              for match in re.findall(version_pattern, comment):
-                  if match[0]: before_version = match[0]
-                  if match[1]: after_version = match[1]
+          flattened_comments = flatten_comments(comments)
 
           client = OpenAI(api_key=os.environ['OPENAI_API_KEY'])
+
           prompt = f"""
-          Given the following Jira comments, identify what testing was performed (manual/automated, scope, edge cases):
-          {chr(10).join(comment_bodies)}
+          You are a senior QA engineer reviewing a Jira ticket. Analyze the following Jira issue and extract:
+
+          1. What testing has been done (manual, automated, scope, edge cases)?
+          2. All component IDs involved.
+          3. Any mention of a previous and current version.
+          4. Any useful notes for regression or rollout.
+
+          Jira Summary: {summary}
+
+          Jira Description: {desc_text}
+
+          Components: {', '.join(component_names)}
+
+          Comments:
+          {'\n'.join(flattened_comments)}
+
+          Return your response as a structured report.
           """
 
           response = client.chat.completions.create(
@@ -78,15 +101,10 @@ jobs:
               temperature=0.3
           )
 
-          summary = response.choices[0].message.content.strip()
+          report = response.choices[0].message.content.strip()
 
           with open("jira-summary.txt", "w") as f:
-              f.write(f"Jira ID: {jira_id}\n")
-              f.write(f"Component IDs: {component_ids}\n")
-              f.write(f"Previous Version: {before_version or 'unknown'}\n")
-              f.write(f"Current Version: {after_version or 'unknown'}\n\n")
-              f.write("Testing Summary:\n")
-              f.write(summary)
+              f.write(report)
           EOF
 
       - name: Commit summary back to repo
@@ -94,5 +112,5 @@ jobs:
           git config user.name "github-actions"
           git config user.email "github-actions@github.com"
           git add jira-summary.txt
-          git commit -m "Add summary for Jira ID ${{ github.event.inputs.jira_id }}" || echo "No changes to commit"
+          git commit -m "Add AI-generated summary for Jira ID ${{ github.event.inputs.jira_id }}" || echo "No changes to commit"
           git push https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git HEAD:main

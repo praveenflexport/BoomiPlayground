@@ -1,25 +1,21 @@
-Report:
+**Report:**
 
-1. Testing Done:
-   - Manual testing has been performed.
-   - End-to-end testing was planned but not confirmed if it was completed.
-   - The scope of testing included checking the error messages for different scenarios, including air shipment with and without HAWB, and ocean shipment with and without container number.
-   - Edge cases such as the failure of an air shipment with HAWB were tested.
+1. **Testing Done:**
+   - Manual testing has been done.
+   - The scope of the testing included checking the error messages for different scenarios: air shipment with HAWB, air shipment without HAWB, ocean shipment with container number, and ocean shipment without container number.
+   - The edge cases tested include the scenario where the air shipment has a HAWB but still fails.
+   
+2. **Component IDs Involved:**
+   - The component ID mentioned in the ticket is 12963.
+   - Another component ID mentioned in the testing comments is 68d6f79f-6c44-45f5-969f-04c08d43b48a.
 
-2. Component IDs Involved:
-   - 12963
-   - 68d6f79f-6c44-45f5-969f-04c08d43b48a
-
-3. Previous and Current Version:
+3. **Previous and Current Version:**
    - The previous version of the component was 190.
    - The current version of the component is 195.
 
-4. Useful Notes for Regression or Rollout:
-   - The deployment of the update was initially unsuccessful, possibly due to a network issue. This needs to be investigated to avoid such issues in the future.
-   - A code review was performed by Kiran.
-   - The error messages were updated multiple times based on the feedback and test results.
-   - The due date for the UAT testing was updated to EOD Monday.
-   - A blocker related to database access was resolved.
-   - The priority of this issue was higher than internal initiatives like AI exploration / Demand FFA projects.
-   - The error message for missing V102 & V104 needs to be fixed as it is not accurate.
-   - Whenever the due date is adjusted, the “Reporter” should be checked with to see if the new date would work or if this needs any prioritization.
+4. **Notes for Regression or Rollout:**
+   - There were issues with the deployment of the updated error message, which was not reflected correctly. This needs to be investigated to avoid similar issues in future deployments.
+   - The error message for missing HAWB even after it was added needs to be investigated and fixed.
+   - The error message for the V102 and V104 error has been updated and needs to be tested.
+   - The due date for the task needs to be coordinated with the "Reporter" to ensure it aligns with their expectations.
+   - The code review was done by Kiran, and any issues found during the review need to be addressed before the rollout.

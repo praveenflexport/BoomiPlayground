@@ -1,0 +1,46 @@
+name: Fetch Boomi Components Modified in Last 24h
+
+on:
+  workflow_dispatch:
+
+jobs:
+  fetch-and-save:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          persist-credentials: false
+
+      - name: Install jq
+        run: sudo apt-get install -y jq
+
+      - name: Build Boomi Query Payload
+        run: |
+          YESTERDAY=$(date -u -d "24 hours ago" +"%Y-%m-%dT%H:%M:%SZ")
+          echo "QUERY_JSON={\"QueryFilter\":{\"expression\":{\"property\":\"modifiedDate\",\"operator\":\"GREATER_THAN\",\"argument\":[\"$YESTERDAY\"]}}}" >> $GITHUB_ENV
+
+      - name: Call Boomi API for Modified Components
+        env:
+          BOOMI_USERNAME: ${{ secrets.BOOMI_USERNAME }}
+          BOOMI_TOKEN: ${{ secrets.BOOMI_TOKEN }}
+        run: |
+          mkdir -p boomi-metadata
+          TIMESTAMP=$(date -u +"%Y%m%d_%H%M%S")
+          curl --user "BOOMI_TOKEN.${BOOMI_USERNAME}:${BOOMI_TOKEN}" \
+            --request POST \
+            --header "Content-Type: application/json" \
+            --header "Accept: application/json" \
+            --data "$QUERY_JSON" \
+            "https://api.boomi.com/api/rest/v1/flexport-HIQ5VP/ComponentMetadata/query" \
+            --silent --fail \
+            --output boomi-metadata/components_modified_${TIMESTAMP}.json
+
+      - name: Commit and Push Results to GitHub
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git add boomi-metadata/
+          git commit -m "Add modified components metadata from last 24h" || echo "No changes to commit"
+          git push https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git HEAD:main

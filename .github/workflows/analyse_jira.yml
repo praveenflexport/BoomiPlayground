@@ -72,6 +72,7 @@ jobs:
 
           comments = issue_data["fields"].get("comment", {}).get("comments", [])
           flattened_comments = flatten_comments(comments)
+          comment_text = "\n".join(flattened_comments)
 
           client = OpenAI(api_key=os.environ['OPENAI_API_KEY'])
 
@@ -90,7 +91,7 @@ jobs:
           Components: {', '.join(component_names)}
 
           Comments:
-          {'\n'.join(flattened_comments)}
+          {comment_text}
 
           Return your response as a structured report.
           """

@@ -23,7 +23,7 @@ jobs:
       - name: Install Python dependencies
         run: pip install pandas requests
 
-      - name: Fetch Boomi Component History and Process
+      - name: Fetch Boomi Component Metadata and Process
         env:
           BOOMI_USERNAME: ${{ secrets.BOOMI_USERNAME }}
           BOOMI_TOKEN: ${{ secrets.BOOMI_TOKEN }}
@@ -36,7 +36,7 @@ jobs:
 
           component_id = os.environ["COMPONENT_ID"]
           auth = f"BOOMI_TOKEN.{os.environ['BOOMI_USERNAME']}:{os.environ['BOOMI_TOKEN']}"
-          url = f"https://api.boomi.com/api/rest/v1/flexport-HIQ5VP/Component/{component_id}/query"
+          url = "https://api.boomi.com/api/rest/v1/flexport-HIQ5VP/ComponentMetadata/query"
 
           headers = {
               "Accept": "application/json",
@@ -53,12 +53,14 @@ jobs:
               }
           }
 
+          print("Requesting component metadata...")
           response = requests.post(url, auth=tuple(auth.split(":", 1)), json=data, headers=headers)
           response.raise_for_status()
+
           metadata = response.json().get("result", [])
 
           if not metadata:
-              print("No component metadata found.")
+              print("No metadata found for this component.")
               exit(0)
 
           df = pd.DataFrame(metadata)[['componentId', 'version', 'modifiedBy']]

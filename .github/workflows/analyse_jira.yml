@@ -1,0 +1,98 @@
+name: Analyze Jira and Summarize Testing
+
+on:
+  workflow_dispatch:
+    inputs:
+      jira_id:
+        description: 'Enter the Jira Ticket ID (e.g. PROJ-123)'
+        required: true
+
+jobs:
+  analyze-jira:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install Python dependencies
+        run: pip install requests openai
+
+      - name: Analyze Jira ticket
+        env:
+          JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
+          JIRA_USER_EMAIL: ${{ secrets.JIRA_USER_EMAIL }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          JIRA_BASE_URL: ${{ secrets.JIRA_BASE_URL }}
+          JIRA_ID: ${{ github.event.inputs.jira_id }}
+        run: |
+          python3 <<EOF
+          import os
+          import requests
+          import base64
+          import re
+          from openai import OpenAI
+
+          jira_id = os.environ['JIRA_ID']
+          base_url = os.environ['JIRA_BASE_URL']
+          user_email = os.environ['JIRA_USER_EMAIL']
+          api_token = os.environ['JIRA_API_TOKEN']
+          auth_str = f"{user_email}:{api_token}"
+
+          headers = {
+              "Authorization": "Basic " + base64.b64encode(auth_str.encode()).decode(),
+              "Accept": "application/json"
+          }
+
+          res = requests.get(f"{base_url}/rest/api/3/issue/{jira_id}?expand=renderedFields", headers=headers)
+          res.raise_for_status()
+          issue_data = res.json()
+
+          comments = issue_data["fields"].get("comment", {}).get("comments", [])
+          comment_bodies = [c["body"] for c in comments]
+
+          components = issue_data["fields"].get("components", [])
+          component_ids = [c.get("id", "unknown") for c in components]
+
+          version_pattern = r"(?i)(?:before|previous) version[:=]? (\S+)|(?:after|current) version[:=]? (\S+)"
+          before_version = after_version = None
+          for comment in comment_bodies:
+              for match in re.findall(version_pattern, comment):
+                  if match[0]: before_version = match[0]
+                  if match[1]: after_version = match[1]
+
+          client = OpenAI(api_key=os.environ['OPENAI_API_KEY'])
+          prompt = f"""
+          Given the following Jira comments, identify what testing was performed (manual/automated, scope, edge cases):
+          {chr(10).join(comment_bodies)}
+          """
+
+          response = client.chat.completions.create(
+              model="gpt-4",
+              messages=[{"role": "user", "content": prompt}],
+              temperature=0.3
+          )
+
+          summary = response.choices[0].message.content.strip()
+
+          with open("jira-summary.txt", "w") as f:
+              f.write(f"Jira ID: {jira_id}\n")
+              f.write(f"Component IDs: {component_ids}\n")
+              f.write(f"Previous Version: {before_version or 'unknown'}\n")
+              f.write(f"Current Version: {after_version or 'unknown'}\n\n")
+              f.write("Testing Summary:\n")
+              f.write(summary)
+          EOF
+
+      - name: Commit summary back to repo
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git add jira-summary.txt
+          git commit -m "Add summary for Jira ID ${{ github.event.inputs.jira_id }}" || echo "No changes to commit"
+          git push https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git HEAD:main

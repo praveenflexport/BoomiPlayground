@@ -1,4 +1,4 @@
-name: Fetch Boomi Components Modified in Last 24h
+name: Step 1: Fetch Boomi Components Modified in Last 24h
 
 on:
   workflow_dispatch:

@@ -1,0 +1,64 @@
+name: Get Latest Component Versions for Reviewers
+
+on:
+  workflow_dispatch:
+
+jobs:
+  extract-latest-versions:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.x'
+
+      - name: Install dependencies
+        run: pip install pandas
+
+      - name: Compute latest versions
+        run: |
+          import pandas as pd
+          import json
+
+          # Load CSV
+          csv_file = "readyForCodeReview.csv"
+          df_review = pd.read_csv(csv_file, names=["modifiedBy", "componentId"])
+
+          # Load JSON
+          with open("boomi-metadata/components_modified_20250530_040646.json", "r") as f:
+              metadata = json.load(f)
+
+          # Create a lookup dict: {(componentId, modifiedBy): max_version}
+          version_lookup = {}
+          for item in metadata.get("result", []):
+              cid = item.get("id")
+              version = item.get("version", 0)
+              modified_by = item.get("modifiedBy")
+              key = (cid, modified_by)
+              if key not in version_lookup or version > version_lookup[key]:
+                  version_lookup[key] = version
+
+          # Generate new CSV
+          output_rows = []
+          for _, row in df_review.iterrows():
+              key = (row["componentId"], row["modifiedBy"])
+              latest_version = version_lookup.get(key, "")
+              output_rows.append({
+                  "modifiedBy": row["modifiedBy"],
+                  "componentId": row["componentId"],
+                  "latestVersion": latest_version
+              })
+
+          df_output = pd.DataFrame(output_rows)
+          df_output.to_csv("reviewer_component_versions.csv", index=False)
+
+      - name: Commit new CSV
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git add reviewer_component_versions.csv
+          git commit -m "Add reviewer_component_versions.csv"
+          git push https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git HEAD:main

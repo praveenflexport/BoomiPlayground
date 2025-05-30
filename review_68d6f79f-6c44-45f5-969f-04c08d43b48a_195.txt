@@ -1,0 +1,13 @@
+Assignee: pparthasarathy@flexport.com
+
+1. The changes made in the Boomi component are related to the error messages displayed when certain conditions are not met in the process. Specifically, the error messages for three business rules have been updated to provide more detailed instructions for users. The first change is related to the error message for missing shipment details, which now specifies the need for Vessel Name for Ocean and IATA Code OR flight_number for Air. The second change is related to the error message for missing shipment details, which now specifies the need for Container Number for Ocean and HAWB for Air. The third change is related to the error message for missing equipment details, which now specifies the need for Container Number for Ocean and HAWB for Air.
+
+2. The component name suggests that this change supports the integration with Infor Nexus - EDI 856. This is likely a customer who uses Infor Nexus for their EDI transactions and specifically the 856 transaction set (Ship Notice/Manifest).
+
+3. The impact of this change is relatively low risk as it only involves updating error messages to provide more detailed instructions. However, it may affect the behavior of users who are accustomed to the old messages. There could be edge cases where users may be confused by the new messages if they are not familiar with the terms used (e.g., IATA Code, HAWB).
+
+4. The reviewer can inspect these changes in the Boomi UI under the Process tab, specifically within the configuration of the shapes that contain the business rules (shape[39] and shape[42]).
+
+5. The affected EDI transaction is the 856 transaction set (Ship Notice/Manifest), which is typically used by suppliers to tell a buyer that a shipment is on its way. This is an outbound transaction from the supplier's perspective.
+
+6. The scale of the change is small as it only involves updating text for error messages. Testing can be done by triggering the conditions that would display these error messages and verifying that the new messages are displayed correctly. Rollback would involve reverting the error messages back to their previous state.

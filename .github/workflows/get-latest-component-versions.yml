@@ -1,4 +1,4 @@
-name: Get Latest Component Versions
+name: Get Latest Version for Components
 
 on:
   workflow_dispatch:
@@ -8,54 +8,51 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repo
+      - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Run Python script to compute latest component versions
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.x'
+
+      - name: Install dependencies
+        run: pip install pandas
+
+      - name: Run Python script to extract latest versions
         run: |
-          python <<EOF
+          import pandas as pd
           import json
-          import csv
-          import glob
 
-          # Load CSV with modified_by and component_id
-          with open('readyForCodeReview.csv') as f:
-              reader = csv.reader(f)
-              review_data = list(reader)
+          # Load input CSV
+          csv_file = 'readyForCodeReview.csv'
+          df = pd.read_csv(csv_file, header=None, names=['modifiedBy', 'componentId'])
 
-          # Find the latest JSON metadata file (e.g., components_modified_*.json)
-          json_files = glob.glob('boomi-metadata/components_modified_*.json')
-          if not json_files:
-              raise FileNotFoundError("No component metadata JSON file found.")
-          latest_json = max(json_files, key=lambda x: x.split('_')[-1].split('.')[0])
+          # Load JSON metadata
+          with open('boomi-metadata/components_modified_20250530_040646.json') as f:
+              metadata = json.load(f)['result']
 
-          # Load JSON file
-          with open(latest_json) as f:
-              deployments = json.load(f)
+          # Convert metadata to DataFrame
+          meta_df = pd.DataFrame(metadata)
 
-          # Build result list
-          result = []
-          for row in review_data:
-              modified_by, component_id = row
-              versions = [
-                  int(entry["version"])
-                  for entry in deployments
-                  if entry["id"] == component_id and entry["modifiedBy"] == modified_by
-              ]
-              latest_version = max(versions) if versions else "N/A"
-              result.append([modified_by, component_id, latest_version])
+          # Prepare final list
+          results = []
+          for _, row in df.iterrows():
+              user = row['modifiedBy']
+              component_id = row['componentId']
+              matches = meta_df[(meta_df['modifiedBy'] == user) & (meta_df['componentId'] == component_id)]
+              if not matches.empty:
+                  latest = matches.sort_values('version', ascending=False).iloc[0]
+                  results.append([user, component_id, latest['version']])
 
-          # Write new CSV
-          with open('review_ready_with_versions.csv', 'w', newline='') as f:
-              writer = csv.writer(f)
-              writer.writerow(["modified_by", "component_id", "latest_version"])
-              writer.writerows(result)
-          EOF
+          # Save to CSV
+          output_df = pd.DataFrame(results, columns=['modifiedBy', 'componentId', 'latestVersion'])
+          output_df.to_csv('boomi-latest-versions.csv', index=False)
 
-      - name: Commit result CSV to repo
+      - name: Commit results to repo
         run: |
           git config user.name "github-actions"
           git config user.email "github-actions@github.com"
-          git add review_ready_with_versions.csv
-          git commit -m "Add review_ready_with_versions.csv with latest version info" || echo "No changes to commit"
+          git add boomi-latest-versions.csv
+          git commit -m "Add latest version info for reviewed components" || echo "No changes to commit"
           git push https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git HEAD:main

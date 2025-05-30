@@ -1,4 +1,4 @@
-name: Get Boomi Component History
+name: Step 3 - Get Boomi Component History
 
 on:
   workflow_dispatch:

@@ -1,4 +1,4 @@
-name: Step 4 - Boomi Version Author Comparison
+name: Boomi Version Author Comparison
 
 on:
   workflow_dispatch:

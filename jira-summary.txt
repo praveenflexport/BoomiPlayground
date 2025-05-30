@@ -1,0 +1,25 @@
+Report:
+
+1. Testing Done:
+   - Manual testing has been performed.
+   - End-to-end testing was planned but not confirmed if it was completed.
+   - The scope of testing included checking the error messages for different scenarios, including air shipment with and without HAWB, and ocean shipment with and without container number.
+   - Edge cases such as the failure of an air shipment with HAWB were tested.
+
+2. Component IDs Involved:
+   - 12963
+   - 68d6f79f-6c44-45f5-969f-04c08d43b48a
+
+3. Previous and Current Version:
+   - The previous version of the component was 190.
+   - The current version of the component is 195.
+
+4. Useful Notes for Regression or Rollout:
+   - The deployment of the update was initially unsuccessful, possibly due to a network issue. This needs to be investigated to avoid such issues in the future.
+   - A code review was performed by Kiran.
+   - The error messages were updated multiple times based on the feedback and test results.
+   - The due date for the UAT testing was updated to EOD Monday.
+   - A blocker related to database access was resolved.
+   - The priority of this issue was higher than internal initiatives like AI exploration / Demand FFA projects.
+   - The error message for missing V102 & V104 needs to be fixed as it is not accurate.
+   - Whenever the due date is adjusted, the “Reporter” should be checked with to see if the new date would work or if this needs any prioritization.

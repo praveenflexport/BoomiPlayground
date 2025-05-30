@@ -1,0 +1,36 @@
+name: Boomi Diff Review Batch
+
+on:
+  workflow_dispatch:
+
+jobs:
+  run-boomi-review:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install dependencies
+        run: pip install requests openai pandas
+
+      - name: Run Boomi Diff Review
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          BOOMI_USERNAME: ${{ secrets.BOOMI_USERNAME }}
+          BOOMI_TOKEN: ${{ secrets.BOOMI_TOKEN }}
+        run: |
+          python3 .github/scripts/boomi_diff_review.py
+
+      - name: Commit results
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git add review_*.txt || echo "No reviews to add"
+          git commit -m "Add Boomi AI reviews from readyForCodeReview.csv" || echo "No changes to commit"
+          git push https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git HEAD:main

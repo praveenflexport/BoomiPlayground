@@ -1,0 +1,38 @@
+name: Download Boomi Component XML
+
+on:
+  workflow_dispatch:
+    inputs:
+      component_id:
+        description: 'Boomi Component ID'
+        required: true
+      version:
+        description: 'Version Number'
+        required: true
+
+jobs:
+  download-xml:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Set up Boomi credentials
+      run: echo "BOOMI_AUTH=BOOMI_TOKEN.${{ secrets.BOOMI_USERNAME }}:${{ secrets.BOOMI_TOKEN }}" >> $GITHUB_ENV
+
+    - name: Download Boomi XML
+      run: |
+        mkdir -p boomi-xmls
+        curl --user "$BOOMI_AUTH" \
+          --request GET \
+          "https://api.boomi.com/api/rest/v1/flexport-HIQ5VP/Component/${{ github.event.inputs.component_id }}/${{ github.event.inputs.version }}" \
+          --header "Accept: application/xml" \
+          --output boomi-xmls/${{ github.event.inputs.component_id }}_v${{ github.event.inputs.version }}.xml
+
+    - name: Commit XML to repo
+      run: |
+        git config user.name "github-actions"
+        git config user.email "github-actions@github.com"
+        git add boomi-xmls/
+        git commit -m "Add Boomi XML for ${{ github.event.inputs.component_id }} v${{ github.event.inputs.version }}" || echo "No changes to commit"
+        git push

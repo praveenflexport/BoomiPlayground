@@ -30,10 +30,11 @@ jobs:
           COMPONENT_ID: ${{ github.event.inputs.component_id }}
         run: |
           python3 <<EOF
+          import os
           import requests
           import pandas as pd
 
-          component_id = "${COMPONENT_ID}"
+          component_id = os.environ["COMPONENT_ID"]
           auth = f"BOOMI_TOKEN.{os.environ['BOOMI_USERNAME']}:{os.environ['BOOMI_TOKEN']}"
           url = f"https://api.boomi.com/api/rest/v1/flexport-HIQ5VP/Component/{component_id}/query"
 

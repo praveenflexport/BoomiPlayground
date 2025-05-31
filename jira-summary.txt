@@ -1,22 +1,23 @@
 Report:
 
 1. Testing Done:
-   - Manual testing has been performed, as indicated by the comments and test results.
-   - The scope of testing includes checking the error messages for both air and ocean shipments, with and without HAWB and Container Number respectively.
-   - Edge cases tested include scenarios where the HAWB or Container Number is missing.
-   - Integration testing was mentioned but it was not clear if it was completed.
-   - End-to-end testing was suggested but it was not clear if it was completed.
+   - Manual testing has been done as indicated by the test results and the testing comments.
+   - The scope of testing includes checking the error messages for different scenarios such as air shipment with/without HAWB and ocean shipment with/without container number.
+   - The edge cases tested include the scenario where the HAWB was added to the air shipment but an error for missing HAWB was still received.
+   - The tester also attempted to test the updated error message but found that it wasn't updated as expected.
 
 2. Component IDs Involved:
-   - The main component ID involved is 12963.
-   - Another component ID mentioned in the testing comments is 68d6f79f-6c44-45f5-969f-04c08d43b48a.
+   - The main component ID mentioned in the Jira ticket is 12963.
+   - Another component ID mentioned in the testing comment is 68d6f79f-6c44-45f5-969f-04c08d43b48a.
 
 3. Previous and Current Version:
-   - The before version is 190 and the after version is 195.
+   - The previous version of the component is 190.
+   - The current (after) version of the component is 195.
 
 4. Notes for Regression or Rollout:
-   - There were issues with the deployment of the updated error message, which may need to be investigated to avoid similar issues in the future.
-   - There were also issues with database access that were resolved, which could be a point of consideration for future rollouts.
-   - The error message verbiage was updated multiple times, indicating that clear communication and agreement on the error message content is important for successful rollout.
-   - There is a high priority placed on this issue over internal initiatives, indicating that it may be a critical fix.
-   - There is a note to check with the “Reporter” before adjusting any due dates, indicating the importance of coordination with stakeholders during rollout.
+   - The error message needs to be updated correctly as per the new requirements.
+   - The issue of the error message not updating correctly even after deployment needs to be investigated and resolved to avoid similar issues in the future.
+   - The error for missing HAWB even after it was added to the air shipment needs to be resolved.
+   - The error messages for missing V102 and V104 also need to be updated as per the new requirements.
+   - Any changes in the due date need to be communicated and confirmed with the reporter.
+   - The updated component needs to be tested again in the UAT environment after deployment.
